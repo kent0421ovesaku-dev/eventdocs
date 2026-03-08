@@ -1,8 +1,10 @@
 import DiffMatchPatch from "diff-match-patch";
 
-const DIFF_DELETE = -1;
-const DIFF_INSERT = 1;
-const DIFF_EQUAL = 0;
+// diff-match-patch は default export のみのため、クラスをエイリアスして利用
+const diff_match_patch = DiffMatchPatch;
+const DIFF_DELETE = (DiffMatchPatch as unknown as { DIFF_DELETE?: number }).DIFF_DELETE ?? -1;
+const DIFF_INSERT = (DiffMatchPatch as unknown as { DIFF_INSERT?: number }).DIFF_INSERT ?? 1;
+const DIFF_EQUAL = (DiffMatchPatch as unknown as { DIFF_EQUAL?: number }).DIFF_EQUAL ?? 0;
 
 export interface DiffChunk {
   type: "add" | "remove" | "equal";
@@ -26,7 +28,7 @@ export interface DiffResult {
 }
 
 export function detectTextDiff(leftText: string, rightText: string): DiffResult {
-  const dmp = new DiffMatchPatch();
+  const dmp = new diff_match_patch();
   const { chars1, chars2, lineArray } = dmp.diff_linesToChars_(leftText, rightText);
   const diffs = dmp.diff_main(chars1, chars2, false);
   dmp.diff_charsToLines_(diffs, lineArray);
