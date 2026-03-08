@@ -24,7 +24,7 @@ export default function FileUpload({
   const uploadFile = useCallback(
     async (file: File) => {
       if (!isAllowedFile(file.name)) {
-        setError("対応形式：.xlsx, .xls, .docx, .pdf, .png, .jpg, .jpeg");
+        setError("対応形式：.xlsx, .xls, .docx, .pdf, .pptx, .ppt, .png, .jpg, .jpeg");
         return;
       }
       setError(null);
@@ -48,6 +48,19 @@ export default function FileUpload({
           return;
         }
 
+        const { data: existingFiles } = await supabase
+          .from("files")
+          .select("id")
+          .eq("session_id", sessionId)
+          .eq("side", side);
+
+        await supabase
+          .from("files")
+          .update({ is_current: false })
+          .eq("session_id", sessionId)
+          .eq("side", side);
+
+        const newVersion = (existingFiles?.length ?? 0) + 1;
         const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
         const { error: insertErr } = await supabase.from("files").insert({
           session_id: sessionId,
@@ -55,6 +68,8 @@ export default function FileUpload({
           original_name: file.name,
           file_type: ext,
           storage_path: storagePath,
+          version: newVersion,
+          is_current: true,
         });
 
         if (insertErr) {
@@ -117,7 +132,7 @@ export default function FileUpload({
         <input
           type="file"
           className="hidden"
-          accept=".xlsx,.xls,.docx,.pdf,.png,.jpg,.jpeg"
+          accept=".xlsx,.xls,.docx,.pdf,.pptx,.ppt,.png,.jpg,.jpeg"
           onChange={handleInputChange}
           disabled={disabled || uploading}
         />
@@ -125,7 +140,7 @@ export default function FileUpload({
           {uploading ? "アップロード中…" : "ドラッグ＆ドロップ または クリックしてファイル選択"}
         </span>
         <br />
-        <span className="text-xs text-gray-500">.xlsx, .xls, .docx, .pdf, .png, .jpg</span>
+        <span className="text-xs text-gray-500">.xlsx, .xls, .docx, .pdf, .pptx, .ppt, .png, .jpg</span>
       </label>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
     </div>

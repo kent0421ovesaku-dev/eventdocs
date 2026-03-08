@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Resizer from "./Resizer";
 import FilePanel from "./FilePanel";
 import CommentSidebar from "./CommentSidebar";
+import DiffHighlight from "./DiffHighlight";
+import type { DiffResult } from "@/lib/diffUtils";
 
 type DiffViewerProps = {
   sessionId: string;
@@ -18,10 +20,47 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
   const [syncScroll, setSyncScroll] = useState(true);
+  const [leftText, setLeftText] = useState<string>("");
+  const [rightText, setRightText] = useState<string>("");
+  const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
+  const [diffLoading, setDiffLoading] = useState(false);
 
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
+  const diffPanelRef = useRef<HTMLDivElement>(null);
   const isSyncing = useRef(false);
+
+  useEffect(() => {
+    if (diffResult) {
+      diffPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [diffResult]);
+
+  const handleDetectDiff = useCallback(async () => {
+    const left = leftText.trim();
+    const right = rightText.trim();
+    if (!left || !right) {
+      window.alert("両パネルにテキストファイル（Excel・Word・PDF）をアップロードしてください");
+      return;
+    }
+    setDiffLoading(true);
+    setDiffResult(null);
+    try {
+      const response = await fetch("/api/diff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leftText: left, rightText: right }),
+      });
+      if (!response.ok) throw new Error("差分検出に失敗しました");
+      const result = await response.json();
+      setDiffResult(result);
+    } catch (error) {
+      console.error("Diff detection error:", error);
+      window.alert("差分検出中にエラーが発生しました");
+    } finally {
+      setDiffLoading(false);
+    }
+  }, [leftText, rightText]);
 
   const handleLeftScroll = useCallback(() => {
     if (!syncScroll || isSyncing.current) return;
@@ -70,6 +109,20 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
         <h1 className="font-semibold text-gray-900 truncate min-w-0">{title}</h1>
         <button
           type="button"
+          onClick={handleDetectDiff}
+          disabled={diffLoading}
+          className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shrink-0"
+        >
+          {diffLoading ? (
+            <>
+              <span className="animate-spin">⏳</span> 検出中...
+            </>
+          ) : (
+            <>🔍 差分を検出</>
+          )}
+        </button>
+        <button
+          type="button"
           onClick={() => setSyncScroll((s) => !s)}
           className={`px-3 py-1.5 text-sm font-medium rounded-lg transition shrink-0 ${
             syncScroll
@@ -114,6 +167,7 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
             sessionId={sessionId}
             side="left"
             onScroll={handleLeftScroll}
+            onTextExtracted={setLeftText}
           />
         </div>
 
@@ -128,6 +182,7 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
             sessionId={sessionId}
             side="right"
             onScroll={handleRightScroll}
+            onTextExtracted={setRightText}
           />
         </div>
 
@@ -137,6 +192,18 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
           onToggle={() => setSidebarOpen((o) => !o)}
         />
       </div>
+
+      {diffResult && (
+        <div
+          ref={diffPanelRef}
+          className="border-t border-gray-200 h-64 bg-white flex-shrink-0 flex flex-col min-h-0"
+        >
+          <DiffHighlight
+            result={diffResult}
+            onClose={() => setDiffResult(null)}
+          />
+        </div>
+      )}
     </div>
   );
 }

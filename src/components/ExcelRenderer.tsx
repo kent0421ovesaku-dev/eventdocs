@@ -6,9 +6,25 @@ import * as XLSX from "xlsx";
 type ExcelRendererProps = {
   file: File;
   fileName: string;
+  onTextExtracted?: (text: string) => void;
 };
 
-export default function ExcelRenderer({ file }: ExcelRendererProps) {
+function sheetToPlainText(sheet: XLSX.WorkSheet): string {
+  const range = XLSX.utils.decode_range(sheet["!ref"] || "A1");
+  const parts: string[] = [];
+  for (let R = range.s.r; R <= range.e.r; R++) {
+    const rowParts: string[] = [];
+    for (let C = range.s.c; C <= range.e.c; C++) {
+      const cell = sheet[XLSX.utils.encode_cell({ r: R, c: C })];
+      const value = cell?.v != null ? String(cell.v) : "";
+      rowParts.push(value);
+    }
+    parts.push(rowParts.join("\t"));
+  }
+  return parts.join("\n");
+}
+
+export default function ExcelRenderer({ file, onTextExtracted }: ExcelRendererProps) {
   const [sheets, setSheets] = useState<{ name: string; html: string }[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -31,6 +47,8 @@ export default function ExcelRenderer({ file }: ExcelRendererProps) {
           });
           setSheets(result);
           setActiveIndex(0);
+          const fullText = wb.SheetNames.map((name) => sheetToPlainText(wb.Sheets[name])).join("\n\n");
+          onTextExtracted?.(fullText);
           console.log("Excel render complete, sheets:", result.length);
         } catch (e) {
           console.error("Excel render error:", e);
@@ -47,7 +65,7 @@ export default function ExcelRenderer({ file }: ExcelRendererProps) {
     return () => {
       cancelled = true;
     };
-  }, [file]);
+  }, [file, onTextExtracted]);
 
   if (loading) return <div className="p-4 text-gray-500">読み込み中…</div>;
   if (error) return <div className="p-4 text-red-600">{error}</div>;
@@ -62,7 +80,10 @@ export default function ExcelRenderer({ file }: ExcelRendererProps) {
             <button
               key={s.name}
               type="button"
-              onClick={() => setActiveIndex(i)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveIndex(i);
+              }}
               className={`px-2 py-1 rounded text-sm ${
                 i === activeIndex ? "bg-accent text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}

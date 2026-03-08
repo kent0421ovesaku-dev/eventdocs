@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 
 type WordRendererProps = {
   file: File;
+  onTextExtracted?: (text: string) => void;
 };
 
-export default function WordRenderer({ file }: WordRendererProps) {
+export default function WordRenderer({ file, onTextExtracted }: WordRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const styleRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +32,10 @@ export default function WordRenderer({ file }: WordRendererProps) {
         try {
           const { renderAsync } = await import("docx-preview");
           await renderAsync(buf, el, styleEl ?? undefined);
+          if (!cancelled) {
+            const text = el.innerText ?? el.textContent ?? "";
+            onTextExtracted?.(text);
+          }
           console.log("docx render complete");
         } catch (e) {
           console.error("docx render error:", e);
@@ -53,7 +58,7 @@ export default function WordRenderer({ file }: WordRendererProps) {
       el.innerHTML = "";
       if (styleEl) styleEl.innerHTML = "";
     };
-  }, [file]);
+  }, [file, onTextExtracted]);
 
   if (error) return <div className="p-4 text-red-600">{error}</div>;
 

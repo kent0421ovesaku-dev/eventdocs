@@ -6,9 +6,10 @@ interface PdfRendererProps {
   file: File;
   currentPage?: number;
   onPageChange?: (page: number) => void;
+  onTextExtracted?: (text: string) => void;
 }
 
-export default function PdfRenderer({ file, currentPage: controlledPage, onPageChange }: PdfRendererProps) {
+export default function PdfRenderer({ file, currentPage: controlledPage, onPageChange, onTextExtracted }: PdfRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [numPages, setNumPages] = useState(0);
   const [internalPage, setInternalPage] = useState(1);
@@ -38,6 +39,18 @@ export default function PdfRenderer({ file, currentPage: controlledPage, onPageC
 
         if (cancelled) return;
         setNumPages(pdf.numPages);
+
+        const textParts: string[] = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          if (cancelled) return;
+          const p = await pdf.getPage(i);
+          const content = await p.getTextContent();
+          const pageText = content.items
+            .map((item: unknown) => (item && typeof item === "object" && "str" in item ? String((item as { str?: string }).str ?? "") : ""))
+            .join("");
+          textParts.push(pageText);
+        }
+        if (!cancelled) onTextExtracted?.(textParts.join("\n\n"));
 
         const page = await pdf.getPage(currentPage);
         if (cancelled) return;
@@ -77,7 +90,7 @@ export default function PdfRenderer({ file, currentPage: controlledPage, onPageC
         renderTaskRef.current.cancel();
       }
     };
-  }, [file, currentPage]);
+  }, [file, currentPage, onTextExtracted]);
 
   if (error) return <div className="text-red-500 p-4">{error}</div>;
 
@@ -88,7 +101,10 @@ export default function PdfRenderer({ file, currentPage: controlledPage, onPageC
         <div className="flex gap-2 mt-2 items-center">
           <button
             type="button"
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentPage(Math.max(1, currentPage - 1));
+            }}
             disabled={currentPage <= 1}
             className="px-3 py-1 bg-accent text-white rounded disabled:opacity-50 hover:bg-blue-600"
           >
@@ -99,7 +115,10 @@ export default function PdfRenderer({ file, currentPage: controlledPage, onPageC
           </span>
           <button
             type="button"
-            onClick={() => setCurrentPage(Math.min(numPages, currentPage + 1))}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentPage(Math.min(numPages, currentPage + 1));
+            }}
             disabled={currentPage >= numPages}
             className="px-3 py-1 bg-accent text-white rounded disabled:opacity-50 hover:bg-blue-600"
           >

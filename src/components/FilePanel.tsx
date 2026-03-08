@@ -11,24 +11,22 @@ type FilePanelProps = {
   sessionId: string;
   side: "left" | "right";
   onScroll?: () => void;
+  onTextExtracted?: (text: string) => void;
 };
 
 function useFileAndComments(sessionId: string, side: "left" | "right") {
-  const [file, setFile] = useState<FileRecord | null>(null);
+  const [versions, setVersions] = useState<FileRecord[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
 
   const refresh = useCallback(async () => {
     if (!supabase) return;
-    // Step1: DBからstorage_pathを取得
-    const [fileRes, commentsRes] = await Promise.all([
+    const [filesRes, commentsRes] = await Promise.all([
       supabase
         .from("files")
         .select("*")
         .eq("session_id", sessionId)
         .eq("side", side)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+        .order("version", { ascending: true }),
       supabase
         .from("comments")
         .select("*")
@@ -36,39 +34,77 @@ function useFileAndComments(sessionId: string, side: "left" | "right") {
         .eq("side", side)
         .order("created_at", { ascending: true }),
     ]);
-    const fileData = fileRes.data;
-    console.log("storage_path from DB:", fileData?.storage_path);
-    if (fileData) {
-      console.log("setFile called:", fileData);
-      setFile(fileData);
-    } else {
-      setFile(null);
-    }
-    console.log("fetched comments:", commentsRes.data, "error:", commentsRes.error);
+    if (filesRes.data) setVersions(filesRes.data);
+    else setVersions([]);
     if (commentsRes.data) setComments(commentsRes.data);
     else setComments([]);
-    console.log("refresh complete");
   }, [sessionId, side]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  return { file, comments, refresh };
+  return { versions, comments, refresh };
+}
+
+function useRealtimeComments(sessionId: string, side: "left" | "right", refresh: () => Promise<void>) {
+  useEffect(() => {
+    const client = supabase;
+    if (!client) return;
+    const channel = client
+      .channel(`comments-${sessionId}-${side}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "comments",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        () => {
+          void refresh();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  }, [sessionId, side, refresh]);
 }
 
 const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
-  { sessionId, side, onScroll },
+  { sessionId, side, onScroll, onTextExtracted },
   ref
 ) {
-  const { file, comments, refresh } = useFileAndComments(sessionId, side);
+  const { versions, comments, refresh } = useFileAndComments(sessionId, side);
+  useRealtimeComments(sessionId, side, refresh);
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [fileContent, setFileContent] = useState<File | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const file =
+    selectedFileId != null
+      ? versions.find((v) => v.id === selectedFileId) ?? versions.find((v) => v.is_current) ?? versions[versions.length - 1]
+      : versions.find((v) => v.is_current) ?? versions[versions.length - 1] ?? null;
+
   useEffect(() => {
     if (!file) setCurrentPage(1);
   }, [file]);
+
+  useEffect(() => {
+    if (!file || !fileContent) {
+      onTextExtracted?.("");
+    }
+  }, [file, fileContent, onTextExtracted]);
+
+  useEffect(() => {
+    if (selectedFileId == null && versions.length > 0) {
+      const current = versions.find((v) => v.is_current) ?? versions[versions.length - 1];
+      if (current) setSelectedFileId(current.id);
+    }
+  }, [versions, selectedFileId]);
 
   // Supabase download()でファイル取得（CORS回避）→ Fileオブジェクトで保持
   useEffect(() => {
@@ -157,12 +193,13 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex-shrink-0 p-2 border-b border-gray-200 bg-white/80 flex items-center justify-between gap-2">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
-        <div className="flex items-center gap-2">
-          {file && (
-            <>
-              <button
+      <div className="flex-shrink-0 p-2 border-b border-gray-200 bg-white/80 flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-medium text-gray-700">{label}</span>
+          <div className="flex items-center gap-2">
+            {file && (
+              <>
+                <button
                 type="button"
                 onClick={handleReplaceFile}
                 disabled={replaceLoading}
@@ -180,7 +217,33 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
               </button>
             </>
           )}
+          </div>
         </div>
+        {versions.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label htmlFor={`version-select-${side}`} className="text-xs text-gray-500 shrink-0">
+              バージョン:
+            </label>
+            <select
+              id={`version-select-${side}`}
+              value={file?.id ?? ""}
+              onChange={(e) => setSelectedFileId(e.target.value || null)}
+              className="text-sm border border-gray-300 rounded px-2 py-1 bg-white min-w-0 flex-1"
+            >
+              {versions.map((v, i) => (
+                <option key={v.id} value={v.id}>
+                  v{v.version ?? i + 1}: {v.original_name}
+                  {v.is_current ? " (最新)" : ""}
+                </option>
+              ))}
+            </select>
+            {file?.is_current && (
+              <span className="text-xs font-medium text-[#3B82F6] bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
+                最新
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         <FileUpload sessionId={sessionId} side={side} onUploadComplete={refresh} />
@@ -202,8 +265,14 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
                 file={fileContent}
                 fileType={file.file_type}
                 fileName={file.original_name}
+                fileUrl={
+                  (file.file_type === ".pptx" || file.file_type === ".ppt") && supabase
+                    ? supabase.storage.from("files").getPublicUrl(file.storage_path).data.publicUrl
+                    : undefined
+                }
                 currentPage={currentPage}
                 onPageChange={setCurrentPage}
+                onTextExtracted={onTextExtracted}
               />
             </PinComment>
           ) : file ? (

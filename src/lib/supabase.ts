@@ -36,6 +36,8 @@ export type FileRecord = {
   original_name: string;
   file_type: string;
   storage_path: string;
+  version?: number;
+  is_current?: boolean;
   created_at: string;
 };
 
@@ -48,5 +50,6 @@ export type Comment = {
   commenter_name: string;
   content: string;
   page_number?: number | null;
+  is_resolved?: boolean;
   created_at: string;
 };

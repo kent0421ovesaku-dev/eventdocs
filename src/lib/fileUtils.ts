@@ -3,6 +3,8 @@ export const ALLOWED_EXTENSIONS = [
   '.xls',
   '.docx',
   '.pdf',
+  '.pptx',
+  '.ppt',
   '.png',
   '.jpg',
   '.jpeg',
@@ -13,6 +15,8 @@ export type AllowedFileType =
   | 'xls'
   | 'docx'
   | 'pdf'
+  | 'pptx'
+  | 'ppt'
   | 'png'
   | 'jpg'
   | 'jpeg';
@@ -35,6 +39,8 @@ export function getFileType(filename: string): AllowedFileType | null {
     '.xls': 'xls',
     '.docx': 'docx',
     '.pdf': 'pdf',
+    '.pptx': 'pptx',
+    '.ppt': 'ppt',
     '.png': 'png',
     '.jpg': 'jpg',
     '.jpeg': 'jpeg',
@@ -49,6 +55,8 @@ export function getMimeType(filename: string): string {
     xls: 'application/vnd.ms-excel',
     docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     pdf: 'application/pdf',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    ppt: 'application/vnd.ms-powerpoint',
     png: 'image/png',
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',

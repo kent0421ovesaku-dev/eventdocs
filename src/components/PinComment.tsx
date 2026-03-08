@@ -27,9 +27,23 @@ export default function PinComment({
   const visibleComments = comments.filter(
     (c) => Number(c.page_number ?? 1) === Number(currentPage)
   );
-  console.log("all comments:", comments);
-  console.log("currentPage:", currentPage);
-  console.log("visibleComments:", visibleComments);
+
+  const handleToggleResolved = useCallback(
+    async (comment: Comment) => {
+      const supabase = getSupabase();
+      if (!supabase) return;
+      const { error } = await supabase
+        .from("comments")
+        .update({ is_resolved: !comment.is_resolved })
+        .eq("id", comment.id);
+      if (error) {
+        console.error("Comment resolve toggle failed:", error);
+        return;
+      }
+      await onCommentsChange();
+    },
+    [onCommentsChange]
+  );
 
   const handleContentClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -103,11 +117,14 @@ export default function PinComment({
               key={c.id}
               type="button"
               data-pin-marker
-              className="absolute w-7 h-7 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center shadow cursor-pointer hover:scale-110 transition-transform z-10 pointer-events-auto"
+              className={`absolute w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center shadow cursor-pointer hover:scale-110 transition-transform z-10 pointer-events-auto ${
+                c.is_resolved ? "opacity-60" : ""
+              }`}
               style={{
                 left: `${c.x_percent}%`,
                 top: `${c.y_percent}%`,
                 transform: "translate(-50%, -50%)",
+                backgroundColor: c.is_resolved ? "#9CA3AF" : "#3B82F6",
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -133,6 +150,22 @@ export default function PinComment({
               <p className="text-gray-400 text-xs mt-2">
                 {new Date(popup.created_at).toLocaleString("ja")}
               </p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleResolved(popup);
+                  }}
+                  className={
+                    popup.is_resolved
+                      ? "px-2 py-1 text-xs font-medium rounded bg-gray-300 text-gray-700 hover:bg-gray-400"
+                      : "px-2 py-1 text-xs font-medium rounded bg-green-500 text-white hover:bg-green-600"
+                  }
+                >
+                  {popup.is_resolved ? "↩ 未解決に戻す" : "✓ 解決済みにする"}
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={(e) => {
