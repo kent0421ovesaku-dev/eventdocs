@@ -1,10 +1,4 @@
-import DiffMatchPatch from "diff-match-patch";
-
-// diff-match-patch は default export のみのため、クラスをエイリアスして利用
-const diff_match_patch = DiffMatchPatch;
-const DIFF_DELETE = (DiffMatchPatch as unknown as { DIFF_DELETE?: number }).DIFF_DELETE ?? -1;
-const DIFF_INSERT = (DiffMatchPatch as unknown as { DIFF_INSERT?: number }).DIFF_INSERT ?? 1;
-const DIFF_EQUAL = (DiffMatchPatch as unknown as { DIFF_EQUAL?: number }).DIFF_EQUAL ?? 0;
+import { diff_match_patch, DIFF_INSERT, DIFF_EQUAL } from "diff-match-patch";
 
 export interface DiffChunk {
   type: "add" | "remove" | "equal";
