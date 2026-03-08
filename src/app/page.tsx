@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { redirect } from "next/navigation";
 import { createSession } from "@/lib/actions";
 import { getSupabase } from "@/lib/supabase";
