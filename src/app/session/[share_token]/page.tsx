@@ -31,14 +31,12 @@ export default function SessionPage() {
       return;
     }
     supabase
-      .from("sessions")
-      .select("id, title, share_token")
-      .eq("share_token", share_token)
-      .single()
+      .rpc("get_session_by_share_token", { p_token: share_token })
       .then(({ data, error }) => {
-        if (error || !data) setStatus("not_found");
+        const row = Array.isArray(data) ? data[0] : data;
+        if (error || !row) setStatus("not_found");
         else {
-          setSession(data as SessionData);
+          setSession(row as SessionData);
           setStatus("ready");
         }
       });

@@ -3,42 +3,48 @@
 import { forwardRef, useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { FileRecord, Comment } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import FileUpload from "./FileUpload";
 import FileRenderer from "./FileRenderer";
 import PinComment from "./PinComment";
 
 type FilePanelProps = {
   sessionId: string;
+  shareToken: string;
   side: "left" | "right";
   onScroll?: () => void;
   onTextExtracted?: (text: string) => void;
 };
 
-function useFileAndComments(sessionId: string, side: "left" | "right") {
+function useFileAndComments(sessionId: string, shareToken: string, side: "left" | "right") {
   const [versions, setVersions] = useState<FileRecord[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
 
   const refresh = useCallback(async () => {
-    if (!supabase) return;
-    const [filesRes, commentsRes] = await Promise.all([
-      supabase
-        .from("files")
-        .select("*")
-        .eq("session_id", sessionId)
-        .eq("side", side)
-        .order("version", { ascending: true }),
-      supabase
-        .from("comments")
-        .select("*")
-        .eq("session_id", sessionId)
-        .eq("side", side)
-        .order("created_at", { ascending: true }),
-    ]);
+    // files は Route Handler 経由で取得（anon による broad SELECT を回避）
+    const filesPromise = fetch(
+      `/api/session/${encodeURIComponent(shareToken)}/files?side=${side}`
+    ).then(async (res) => {
+      if (!res.ok) return { data: null };
+      const json = await res.json() as { files?: FileRecord[] };
+      return { data: json.files ?? null };
+    });
+
+    // comments も Route Handler 経由で取得（anon による broad SELECT を回避）
+    const commentsPromise = fetch(
+      `/api/session/${encodeURIComponent(shareToken)}/comments?side=${side}`
+    ).then(async (res) => {
+      if (!res.ok) return { data: null };
+      const json = await res.json() as { comments?: Comment[] };
+      return { data: json.comments ?? null };
+    });
+
+    const [filesRes, commentsRes] = await Promise.all([filesPromise, commentsPromise]);
     if (filesRes.data) setVersions(filesRes.data);
     else setVersions([]);
     if (commentsRes.data) setComments(commentsRes.data);
     else setComments([]);
-  }, [sessionId, side]);
+  }, [sessionId, shareToken, side]);
 
   useEffect(() => {
     refresh();
@@ -74,15 +80,22 @@ function useRealtimeComments(sessionId: string, side: "left" | "right", refresh:
 }
 
 const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
-  { sessionId, side, onScroll, onTextExtracted },
+  { sessionId, shareToken, side, onScroll, onTextExtracted },
   ref
 ) {
-  const { versions, comments, refresh } = useFileAndComments(sessionId, side);
+  const { versions, comments, refresh } = useFileAndComments(sessionId, shareToken, side);
   useRealtimeComments(sessionId, side, refresh);
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [fileContent, setFileContent] = useState<File | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isOwner, setIsOwner] = useState<boolean>(false);
+
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => setIsOwner(!!data.user));
+  }, []);
 
   const file =
     selectedFileId != null
@@ -154,7 +167,7 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
 
   const [replaceLoading, setReplaceLoading] = useState(false);
   const handleReplaceFile = useCallback(async () => {
-    if (!file || !supabase) return;
+    if (!file) return;
     const confirmReplace = window.confirm(
       "現在のファイルを削除して新しいファイルをアップロードしますか？"
     );
@@ -166,15 +179,17 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
 
     setReplaceLoading(true);
     try {
-      await supabase.storage.from("files").remove([file.storage_path]);
-      const { error: deleteError } = await supabase
+      // createClient（auth Cookie 付き）で実行し、migration 後の owner-only RLS に対応
+      const authClient = createClient();
+      await authClient.storage.from("files").remove([file.storage_path]);
+      const { error: deleteError } = await authClient
         .from("files")
         .delete()
         .eq("id", file.id);
       if (deleteError) throw deleteError;
 
       if (confirmComments) {
-        await supabase
+        await authClient
           .from("comments")
           .delete()
           .eq("session_id", sessionId)
@@ -199,14 +214,16 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
           <div className="flex items-center gap-2">
             {file && (
               <>
-                <button
-                type="button"
-                onClick={handleReplaceFile}
-                disabled={replaceLoading}
-                className="text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 px-2 py-1 rounded border border-gray-300 disabled:opacity-50"
-              >
-                ↺ ファイルを変更
-              </button>
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={handleReplaceFile}
+                    disabled={replaceLoading}
+                    className="text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 px-2 py-1 rounded border border-gray-300 disabled:opacity-50"
+                  >
+                    ↺ ファイルを変更
+                  </button>
+                )}
               <button
                 type="button"
                 onClick={handleDownload}
@@ -256,6 +273,7 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
           {file && fileContent ? (
             <PinComment
               sessionId={sessionId}
+              shareToken={shareToken}
               side={side}
               comments={comments}
               onCommentsChange={refresh}

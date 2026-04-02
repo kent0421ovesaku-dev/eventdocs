@@ -165,6 +165,7 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
           <FilePanel
             ref={leftPanelRef}
             sessionId={sessionId}
+            shareToken={shareToken}
             side="left"
             onScroll={handleLeftScroll}
             onTextExtracted={setLeftText}
@@ -180,6 +181,7 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
           <FilePanel
             ref={rightPanelRef}
             sessionId={sessionId}
+            shareToken={shareToken}
             side="right"
             onScroll={handleRightScroll}
             onTextExtracted={setRightText}
@@ -188,6 +190,7 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
 
         <CommentSidebar
           sessionId={sessionId}
+          shareToken={shareToken}
           open={sidebarOpen}
           onToggle={() => setSidebarOpen((o) => !o)}
         />

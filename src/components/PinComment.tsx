@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import CommentModal from "./CommentModal";
-import { getSupabase, type Comment } from "@/lib/supabase";
+import { type Comment } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 type PinCommentProps = {
   sessionId: string;
+  shareToken: string;
   side: "left" | "right";
   comments: Comment[];
   onCommentsChange: () => void | Promise<void>;
@@ -15,6 +17,7 @@ type PinCommentProps = {
 
 export default function PinComment({
   sessionId,
+  shareToken,
   side,
   comments,
   onCommentsChange,
@@ -23,6 +26,13 @@ export default function PinComment({
 }: PinCommentProps) {
   const [modal, setModal] = useState<{ x: number; y: number } | null>(null);
   const [popup, setPopup] = useState<Comment | null>(null);
+  const [isOwner, setIsOwner] = useState<boolean>(false);
+
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => setIsOwner(!!data.user));
+  }, []);
 
   const visibleComments = comments.filter(
     (c) => Number(c.page_number ?? 1) === Number(currentPage)
@@ -30,14 +40,12 @@ export default function PinComment({
 
   const handleToggleResolved = useCallback(
     async (comment: Comment) => {
-      const supabase = getSupabase();
-      if (!supabase) return;
-      const { error } = await supabase
-        .from("comments")
-        .update({ is_resolved: !comment.is_resolved })
-        .eq("id", comment.id);
-      if (error) {
-        console.error("Comment resolve toggle failed:", error);
+      const res = await fetch(`/api/comments/${encodeURIComponent(comment.id)}/resolve`, {
+        method: "PATCH",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        console.error("Comment resolve toggle failed:", err.error ?? res.status);
         return;
       }
       await onCommentsChange();
@@ -72,35 +80,31 @@ export default function PinComment({
   const handleSaveComment = useCallback(
     async (commenterName: string, content: string) => {
       if (!modal) return;
-      const supabase = getSupabase();
-      if (!supabase) return;
-      console.log("saving comment:", {
-        session_id: sessionId,
-        side,
-        x_percent: modal.x,
-        y_percent: modal.y,
-        commenter_name: commenterName,
-        content,
-        page_number: currentPage,
-      });
-      const { data, error } = await supabase.from("comments").insert({
-        session_id: sessionId,
-        side,
-        x_percent: modal.x,
-        y_percent: modal.y,
-        commenter_name: commenterName,
-        content,
-        page_number: currentPage,
-      });
-      console.log("insert result:", { data, error });
-      if (error) {
-        console.error("Comment insert failed:", error.message, error.details);
+      // Route Handler 経由で投稿（session_id はサーバーが share_token から解決）
+      const res = await fetch(
+        `/api/session/${encodeURIComponent(shareToken)}/comments`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            side,
+            x_percent: modal.x,
+            y_percent: modal.y,
+            commenter_name: commenterName,
+            content,
+            page_number: currentPage,
+          }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        console.error("Comment insert failed:", err.error ?? res.status);
         return;
       }
       setModal(null);
       await onCommentsChange();
     },
-    [sessionId, side, modal, currentPage, onCommentsChange]
+    [shareToken, side, modal, currentPage, onCommentsChange]
   );
 
   return (
@@ -150,22 +154,24 @@ export default function PinComment({
               <p className="text-gray-400 text-xs mt-2">
                 {new Date(popup.created_at).toLocaleString("ja")}
               </p>
-              <div className="mt-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggleResolved(popup);
-                  }}
-                  className={
-                    popup.is_resolved
-                      ? "px-2 py-1 text-xs font-medium rounded bg-gray-300 text-gray-700 hover:bg-gray-400"
-                      : "px-2 py-1 text-xs font-medium rounded bg-green-500 text-white hover:bg-green-600"
-                  }
-                >
-                  {popup.is_resolved ? "↩ 未解決に戻す" : "✓ 解決済みにする"}
-                </button>
-              </div>
+              {isOwner && (
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleResolved(popup);
+                    }}
+                    className={
+                      popup.is_resolved
+                        ? "px-2 py-1 text-xs font-medium rounded bg-gray-300 text-gray-700 hover:bg-gray-400"
+                        : "px-2 py-1 text-xs font-medium rounded bg-green-500 text-white hover:bg-green-600"
+                    }
+                  >
+                    {popup.is_resolved ? "↩ 未解決に戻す" : "✓ 解決済みにする"}
+                  </button>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={(e) => {

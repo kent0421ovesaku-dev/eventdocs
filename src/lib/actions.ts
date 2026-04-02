@@ -1,13 +1,22 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { supabase } from "./supabase";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
 export async function createSession(title: string): Promise<string | null> {
-  if (!supabase) return null;
-  const { data, error } = await supabase
+  const supabaseAuth = createClient();
+  const {
+    data: { user },
+  } = await supabaseAuth.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data, error } = await supabaseAuth
     .from("sessions")
-    .insert({ title })
+    .insert({ title, user_id: user.id })
     .select("share_token")
     .single();
 
@@ -19,12 +28,19 @@ export async function createSession(title: string): Promise<string | null> {
 }
 
 export async function deleteSession(sessionId: string): Promise<{ error?: string }> {
-  if (!supabase) return { error: "Supabaseが未設定です" };
-  const { error } = await supabase.from("sessions").delete().eq("id", sessionId);
+  const supabaseAuth = createClient();
+  const {
+    data: { user },
+  } = await supabaseAuth.auth.getUser();
+  if (!user) {
+    return { error: "ログインが必要です" };
+  }
+  const { error } = await supabaseAuth.from("sessions").delete().eq("id", sessionId);
   if (error) {
     console.error("deleteSession error:", error);
     return { error: error.message };
   }
   revalidatePath("/");
+  revalidatePath("/dashboard");
   return {};
 }

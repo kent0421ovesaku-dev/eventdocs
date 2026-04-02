@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { getSupabase } from "@/lib/supabase";
+import { useCallback, useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { isAllowedFile } from "@/lib/fileUtils";
 
 type FileUploadProps = {
@@ -20,6 +20,13 @@ export default function FileUpload({
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [isOwner, setIsOwner] = useState<boolean>(false);
+
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => setIsOwner(!!data.user));
+  }, []);
 
   const uploadFile = useCallback(
     async (file: File) => {
@@ -30,11 +37,10 @@ export default function FileUpload({
       setError(null);
       setUploading(true);
       try {
-        const supabase = getSupabase();
-        if (!supabase) {
-          setError("Supabaseが未設定です");
-          return;
-        }
+        // createClient（browser SSR-aware）を使用することで、
+        // ログイン済みユーザーの auth Cookie が含まれ、
+        // files_insert_own RLS 適用後も INSERT が通る。
+        const supabase = createClient();
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
         const storagePath = `${sessionId}/${side}/${safeName}`;
         console.log("[Upload] storage_path (形式: {session_id}/{side}/{filename}):", storagePath);
@@ -118,6 +124,9 @@ export default function FileUpload({
     },
     [uploadFile]
   );
+
+  // 未ログイン（公開閲覧者）にはアップロード UI を表示しない
+  if (!isOwner) return null;
 
   return (
     <div className="p-2">

@@ -1,38 +1,46 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import type { Comment } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 type FilterTab = "all" | "unresolved" | "resolved";
 
 type CommentSidebarProps = {
   sessionId: string;
+  shareToken: string;
   open: boolean;
   onToggle: () => void;
 };
 
 export default function CommentSidebar({
   sessionId,
+  shareToken,
   open,
   onToggle,
 }: CommentSidebarProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [filter, setFilter] = useState<FilterTab>("unresolved");
+  const [isOwner, setIsOwner] = useState<boolean>(false);
+
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => setIsOwner(!!data.user));
+  }, []);
 
   const refresh = useCallback(async () => {
-    if (!supabase) return;
-    const { data, error } = await supabase
-      .from("comments")
-      .select("*")
-      .eq("session_id", sessionId)
-      .order("created_at", { ascending: true });
-    if (error) {
-      console.error("CommentSidebar fetch error:", error);
+    // Route Handler 経由で取得（anon による broad SELECT を回避）
+    const res = await fetch(
+      `/api/session/${encodeURIComponent(shareToken)}/comments`
+    );
+    if (!res.ok) {
+      console.error("CommentSidebar fetch error:", res.status);
       return;
     }
-    setComments(data ?? []);
-  }, [sessionId]);
+    const json = await res.json() as { comments?: Comment[] };
+    setComments(json.comments ?? []);
+  }, [shareToken]);
 
   useEffect(() => {
     refresh();
@@ -51,13 +59,12 @@ export default function CommentSidebar({
 
   const handleToggleResolved = useCallback(
     async (comment: Comment) => {
-      if (!supabase) return;
-      const { error } = await supabase
-        .from("comments")
-        .update({ is_resolved: !comment.is_resolved })
-        .eq("id", comment.id);
-      if (error) {
-        console.error("Comment resolve toggle failed:", error);
+      const res = await fetch(`/api/comments/${encodeURIComponent(comment.id)}/resolve`, {
+        method: "PATCH",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        console.error("Comment resolve toggle failed:", err.error ?? res.status);
         return;
       }
       await refresh();
@@ -144,17 +151,19 @@ export default function CommentSidebar({
                   <p className="text-gray-400 text-xs mt-1">
                     {new Date(c.created_at).toLocaleString("ja")}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleResolved(c)}
-                    className={
-                      c.is_resolved
-                        ? "mt-2 px-2 py-1 text-xs font-medium rounded bg-gray-300 text-gray-700 hover:bg-gray-400"
-                        : "mt-2 px-2 py-1 text-xs font-medium rounded bg-green-500 text-white hover:bg-green-600"
-                    }
-                  >
-                    {c.is_resolved ? "↩ 未解決に戻す" : "✓ 解決済みにする"}
-                  </button>
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => handleToggleResolved(c)}
+                      className={
+                        c.is_resolved
+                          ? "mt-2 px-2 py-1 text-xs font-medium rounded bg-gray-300 text-gray-700 hover:bg-gray-400"
+                          : "mt-2 px-2 py-1 text-xs font-medium rounded bg-green-500 text-white hover:bg-green-600"
+                      }
+                    >
+                      {c.is_resolved ? "↩ 未解決に戻す" : "✓ 解決済みにする"}
+                    </button>
+                  )}
                 </div>
               ))
             )}
