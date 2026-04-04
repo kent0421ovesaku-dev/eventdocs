@@ -38,13 +38,17 @@ function validateSignUp(email: string, password: string): string | null {
   return null;
 }
 
-export default function LoginForm() {
+export default function LoginForm({ urlError, loggedOut }: { urlError?: string; loggedOut?: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(urlError ?? null);
+  const [info, setInfo] = useState<string | null>(loggedOut ? "ログアウトしました。" : null);
   const [loading, setLoading] = useState(false);
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !loading) handleLogin();
+  }
 
   async function handleLogin() {
     setError(null);
@@ -127,6 +131,7 @@ export default function LoginForm() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               disabled={loading}
             />
@@ -141,6 +146,7 @@ export default function LoginForm() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               disabled={loading}
             />
@@ -175,6 +181,12 @@ export default function LoginForm() {
               新規登録
             </button>
           </div>
+
+          <p className="text-center text-sm text-gray-500 pt-1">
+            <Link href="/forgot-password" className="text-blue-600 hover:underline">
+              パスワードを忘れた方
+            </Link>
+          </p>
         </div>
 
         <p className="mt-6 text-center text-sm text-gray-500">

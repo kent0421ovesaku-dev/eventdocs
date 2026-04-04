@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import MySessionsSection from "@/components/dashboard/MySessionsSection";
+import LogoutButton from "@/components/LogoutButton";
 import { createClient } from "@/lib/supabase/server";
 import type { Session } from "@/lib/supabase";
 
@@ -33,9 +34,12 @@ export default async function DashboardPage() {
       <div className="w-full max-w-2xl mx-auto space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <h1 className="text-xl font-bold text-gray-900">ダッシュボード</h1>
-          <Link href="/" className="text-sm text-blue-600 hover:underline">
-            トップに戻る
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-sm text-blue-600 hover:underline">
+              トップに戻る
+            </Link>
+            <LogoutButton />
+          </div>
         </div>
         <MySessionsSection sessions={mySessions} />
       </div>

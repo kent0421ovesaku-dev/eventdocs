@@ -2,7 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Edge middleware 用。JWT のリフレッシュと cookie 同期のみ（ルート保護はここでは行わない）。
+ * Edge middleware 用。JWT のリフレッシュと cookie 同期を行い、
+ * ログイン済みユーザーが /login を開いた場合は /dashboard にリダイレクトする。
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -32,7 +33,13 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // ログイン済みで /login にアクセスした場合は /dashboard にリダイレクト
+  const path = request.nextUrl.pathname;
+  if (user && (path === "/login" || path === "/forgot-password")) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
 
   return supabaseResponse;
 }
