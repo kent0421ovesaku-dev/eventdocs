@@ -174,6 +174,31 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </section>
         )}
 
+        {/* デモ画像セクション */}
+        <section className="w-full max-w-[720px] mb-16">
+          <p className="text-xs text-gray-400 text-center mb-4">実際の画面</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <figure className="flex flex-col items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://fblixafcxdnryhqfnnfa.supabase.co/storage/v1/object/public/files/demo_comment.png"
+                alt="コメント機能のスクリーンショット"
+                className="w-full rounded-lg border border-gray-200 object-cover"
+              />
+              <figcaption className="text-xs text-gray-400 text-center">コメント機能</figcaption>
+            </figure>
+            <figure className="flex flex-col items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://fblixafcxdnryhqfnnfa.supabase.co/storage/v1/object/public/files/demo_difference.png"
+                alt="差分検出のスクリーンショット"
+                className="w-full rounded-lg border border-gray-200 object-cover"
+              />
+              <figcaption className="text-xs text-gray-400 text-center">差分検出</figcaption>
+            </figure>
+          </div>
+        </section>
+
         {/* フッターノート */}
         <p className="text-xs text-gray-400 text-center max-w-xl">
           セッション一覧は公開されません。共有URLを知っている方だけがアクセスできます。
