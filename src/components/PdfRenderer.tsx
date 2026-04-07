@@ -2,6 +2,96 @@
 
 import { useEffect, useRef } from "react";
 
+// pdfjs-dist の TextItem に含まれる位置情報
+type PdfTextItem = {
+  str: string;
+  transform: number[]; // [scaleX, shearX, shearY, scaleY, x, y]
+  hasEOL?: boolean;
+  width?: number;
+};
+
+/**
+ * 1ページ分の TextItem[] から、位置情報を使って改行・スペースを挿入したテキストを生成する
+ *
+ * - y座標（transform[5]）が LINE_TOLERANCE より多く変化したら改行
+ * - hasEOL=true のアイテムも改行の区切りとして扱う
+ * - 同一行内で x座標のギャップが SPACE_THRESHOLD より大きければスペースを挿入
+ */
+function extractPageText(items: unknown[]): string {
+  const textItems = items.filter((item): item is PdfTextItem => {
+    if (!item || typeof item !== "object") return false;
+    const t = item as Record<string, unknown>;
+    return (
+      typeof t.str === "string" &&
+      Array.isArray(t.transform) &&
+      (t.transform as number[]).length >= 6
+    );
+  });
+
+  if (textItems.length === 0) return "";
+
+  // PDF座標系はy軸が上向きなので、y降順（視覚的な上→下）・同一行内はx昇順でソート
+  const sorted = [...textItems].sort((a, b) => {
+    const yDiff = b.transform[5] - a.transform[5];
+    if (Math.abs(yDiff) > LINE_TOLERANCE) return yDiff;
+    return a.transform[4] - b.transform[4];
+  });
+
+  const lines: string[] = [];
+  let currentLineItems: PdfTextItem[] = [];
+  let currentY: number | null = null;
+
+  const flushLine = () => {
+    if (currentLineItems.length > 0) {
+      lines.push(buildLineText(currentLineItems));
+      currentLineItems = [];
+    }
+  };
+
+  for (const item of sorted) {
+    const y = item.transform[5];
+
+    if (currentY === null || Math.abs(y - currentY) > LINE_TOLERANCE) {
+      flushLine();
+      currentY = y;
+    }
+
+    currentLineItems.push(item);
+
+    if (item.hasEOL) {
+      flushLine();
+      currentY = null;
+    }
+  }
+  flushLine();
+
+  return lines.filter((l) => l.trim() !== "").join("\n");
+}
+
+/** y座標の同一行判定しきい値（PDF単位） */
+const LINE_TOLERANCE = 3;
+/** スペース挿入するx座標ギャップのしきい値（PDF単位） */
+const SPACE_THRESHOLD = 3;
+
+/** 同一行のアイテムをx順に並べ、ギャップにスペースを挿入して結合する */
+function buildLineText(items: PdfTextItem[]): string {
+  const sorted = [...items].sort((a, b) => a.transform[4] - b.transform[4]);
+  let result = "";
+  let prevEnd: number | null = null;
+
+  for (const item of sorted) {
+    if (!item.str) continue;
+    const x = item.transform[4];
+    if (prevEnd !== null && x - prevEnd > SPACE_THRESHOLD) {
+      result += " ";
+    }
+    result += item.str;
+    prevEnd = x + (item.width ?? 0);
+  }
+
+  return result.trim();
+}
+
 interface PdfRendererProps {
   file: File;
   /** 後方互換のため維持（全ページ表示のため未使用） */
@@ -55,13 +145,7 @@ export default function PdfRenderer({ file, onTextExtracted, onRenderStart, onRe
           if (cancelled) return;
           const p = await pdf.getPage(i);
           const content = await p.getTextContent();
-          const pageText = content.items
-            .map((item: unknown) =>
-              item && typeof item === "object" && "str" in item
-                ? String((item as { str?: string }).str ?? "")
-                : ""
-            )
-            .join("");
+          const pageText = extractPageText(content.items);
           textParts.push(pageText);
         }
         if (!cancelled) onTextExtractedRef.current?.(textParts.join("\n\n"));
