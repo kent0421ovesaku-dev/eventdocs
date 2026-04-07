@@ -41,65 +41,126 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center p-8 bg-gray-50">
-      <div className="w-full max-w-2xl mx-auto">
-        <div className="flex justify-end mb-2">
+    <div className="min-h-screen flex flex-col bg-[var(--color-background-tertiary,#f8f9fa)]">
+
+      {/* ヘッダー */}
+      <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <span className="font-semibold text-gray-900 text-sm tracking-tight">eventdocs</span>
+          <span className="text-gray-300 text-sm">/</span>
+          <span className="text-gray-400 text-sm font-normal">資料比較</span>
+        </div>
+        <nav>
           {user ? (
             <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
               ダッシュボード
             </Link>
           ) : (
-            <Link href="/login" className="text-sm text-blue-600 hover:underline">
+            <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">
               受託者ログイン
             </Link>
           )}
-        </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
-          <h1 className="text-xl font-bold text-gray-900 mb-1">
-            資料比較セッションを作成
-          </h1>
-          <p className="text-gray-600 text-sm mb-4">
-            左右に資料をアップロードして比較・コメントできます
-          </p>
-          <p className="text-gray-600 text-sm mb-4">
-            セッションの作成には{" "}
-            <Link href="/login" className="text-blue-600 hover:underline">
-              ログイン
-            </Link>
-            が必要です。
-          </p>
-          {sessionError && (
-            <p
-              className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-3 py-2 mb-4"
-              role="alert"
-            >
-              セッションを作成できませんでした。しばらくしてから再度お試しください。
-            </p>
-          )}
-          <form action={submitAction} className="space-y-4">
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                セッションタイトル
-              </label>
-              <input
-                id="title"
-                name="title"
-                type="text"
-                placeholder="例: イベントA 資料比較"
-                className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-blue-500 text-white rounded px-4 py-2 hover:bg-blue-600 transition"
-            >
-              比較セッションを作成
-            </button>
-          </form>
-        </div>
+        </nav>
+      </header>
 
-        {legacyPublicSessionList ? (
-          <section>
+      {/* メインコンテンツ */}
+      <main className="flex-1 flex flex-col items-center px-6 py-16">
+
+        {/* ヒーロー */}
+        <section className="text-center mb-12">
+          <h1 className="text-3xl font-bold text-gray-900 mb-3 tracking-tight">
+            資料を並べて、確認を前に進める
+          </h1>
+          <p className="text-gray-500 text-base max-w-md mx-auto leading-relaxed">
+            2つの資料を左右に並べて比較・コメント。<br />
+            共有URLで関係者と確認できます。
+          </p>
+        </section>
+
+        {/* フォームカード */}
+        <section className="w-full max-w-[480px] mb-16">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+            {sessionError && (
+              <p
+                className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-3 py-2 mb-4"
+                role="alert"
+              >
+                セッションを作成できませんでした。しばらくしてから再度お試しください。
+              </p>
+            )}
+            <form action={submitAction} className="space-y-3">
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                  セッションタイトル
+                </label>
+                <input
+                  id="title"
+                  name="title"
+                  type="text"
+                  placeholder="例: イベントA 資料比較"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 focus:border-gray-400 outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-gray-900 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-800 active:bg-gray-950 transition"
+              >
+                比較セッションを作成
+              </button>
+            </form>
+            <p className="mt-3 text-xs text-gray-400 text-center">
+              作成には{" "}
+              <Link href="/login" className="underline hover:text-gray-600">
+                ログイン
+              </Link>
+              {" "}が必要です
+            </p>
+          </div>
+        </section>
+
+        {/* 特徴セクション */}
+        <section className="w-full max-w-2xl mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+            {/* 左右で比較 */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
+              <div className="flex justify-center mb-3">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15M3 9h18M3 15h18" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">左右で比較</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">2つの資料を横に並べてスクロール同期しながら確認</p>
+            </div>
+
+            {/* コメント */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
+              <div className="flex justify-center mb-3">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">コメント</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">資料上の任意の箇所にピンを立てて指摘・確認コメントを残せる</p>
+            </div>
+
+            {/* URL共有 */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
+              <div className="flex justify-center mb-3">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">URL共有</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">専用URLを発行。ログイン不要でクライアントと共有できる</p>
+            </div>
+
+          </div>
+        </section>
+
+        {/* Legacy セッション一覧（デモ用） */}
+        {legacyPublicSessionList && (
+          <section className="w-full max-w-2xl">
             <div
               className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
               role="status"
@@ -108,20 +169,17 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               <code className="rounded bg-amber-100/80 px-1">SHOW_LEGACY_HOME_SESSION_LIST</code>{" "}
               を無効のままにしてください。
             </div>
-            <h2 className="font-bold text-lg mt-8 mb-4 text-gray-900">過去のセッション</h2>
+            <h2 className="font-bold text-lg mb-4 text-gray-900">過去のセッション</h2>
             <SessionList sessions={sessions} />
           </section>
-        ) : (
-          <section className="mt-8">
-            <h2 className="font-bold text-lg mb-4 text-gray-900">セッション一覧について</h2>
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 text-sm text-gray-600 space-y-3">
-              <p>
-                トップでは全員分のセッションを一覧しません。作成すると共有用URLへ進みます。共有URLを知っている方だけがそのセッションを開けます。
-              </p>
-            </div>
-          </section>
         )}
-      </div>
-    </main>
+
+        {/* フッターノート */}
+        <p className="text-xs text-gray-400 text-center max-w-md">
+          セッション一覧は公開されません。共有URLを知っている方だけがアクセスできます。
+        </p>
+
+      </main>
+    </div>
   );
 }
