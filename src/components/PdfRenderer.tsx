@@ -1,32 +1,35 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 interface PdfRendererProps {
   file: File;
+  /** 後方互換のため維持（全ページ表示のため未使用） */
   currentPage?: number;
+  /** 後方互換のため維持（全ページ表示のため未使用） */
   onPageChange?: (page: number) => void;
   onTextExtracted?: (text: string) => void;
 }
 
-export default function PdfRenderer({ file, currentPage: controlledPage, onPageChange, onTextExtracted }: PdfRendererProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [numPages, setNumPages] = useState(0);
-  const [internalPage, setInternalPage] = useState(1);
-  const currentPage = onPageChange && controlledPage !== undefined ? controlledPage : internalPage;
-  const setCurrentPage = onPageChange && controlledPage !== undefined ? onPageChange : setInternalPage;
-  const [error, setError] = useState<string | null>(null);
-  const renderTaskRef = useRef<{ cancel: () => void; promise: Promise<void> } | null>(null);
+export default function PdfRenderer({ file, onTextExtracted }: PdfRendererProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  // onTextExtracted を ref で保持して useEffect の依存から外す
+  const onTextExtractedRef = useRef(onTextExtracted);
+  useEffect(() => {
+    onTextExtractedRef.current = onTextExtracted;
+  }, [onTextExtracted]);
 
   useEffect(() => {
     if (!file) return;
+    const container = containerRef.current;
+    if (!container) return;
 
     let cancelled = false;
+    container.innerHTML = "";
 
-    const loadPdf = async () => {
+    const loadAndRender = async () => {
       try {
         const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf");
-
         pdfjsLib.GlobalWorkerOptions.workerSrc =
           "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
@@ -38,94 +41,88 @@ export default function PdfRenderer({ file, currentPage: controlledPage, onPageC
         }).promise;
 
         if (cancelled) return;
-        setNumPages(pdf.numPages);
 
+        // 全ページのテキストを抽出
         const textParts: string[] = [];
         for (let i = 1; i <= pdf.numPages; i++) {
           if (cancelled) return;
           const p = await pdf.getPage(i);
           const content = await p.getTextContent();
           const pageText = content.items
-            .map((item: unknown) => (item && typeof item === "object" && "str" in item ? String((item as { str?: string }).str ?? "") : ""))
+            .map((item: unknown) =>
+              item && typeof item === "object" && "str" in item
+                ? String((item as { str?: string }).str ?? "")
+                : ""
+            )
             .join("");
           textParts.push(pageText);
         }
-        if (!cancelled) onTextExtracted?.(textParts.join("\n\n"));
+        if (!cancelled) onTextExtractedRef.current?.(textParts.join("\n\n"));
 
-        const page = await pdf.getPage(currentPage);
-        if (cancelled) return;
+        // 全ページを順番に canvas に描画して縦並べ
+        for (let i = 1; i <= pdf.numPages; i++) {
+          if (cancelled) return;
 
-        const viewport = page.getViewport({ scale: 1.5 });
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 1.5 });
 
-        const context = canvas.getContext("2d");
-        if (!context) return;
+          const canvas = document.createElement("canvas");
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          canvas.style.maxWidth = "100%";
+          canvas.style.display = "block";
 
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+          // ページ間の区切り
+          const wrapper = document.createElement("div");
+          wrapper.style.marginBottom = "12px";
+          wrapper.appendChild(canvas);
+          container.appendChild(wrapper);
 
-        if (renderTaskRef.current) {
-          renderTaskRef.current.cancel();
+          const context = canvas.getContext("2d");
+          if (!context || cancelled) return;
+
+          const renderTask = page.render({ canvasContext: context, viewport });
+          try {
+            await renderTask.promise;
+          } catch (e: unknown) {
+            if (
+              e &&
+              typeof e === "object" &&
+              "name" in e &&
+              e.name === "RenderingCancelledException"
+            )
+              return;
+            throw e;
+          }
         }
-
-        renderTaskRef.current = page.render({
-          canvasContext: context,
-          viewport,
-        });
-
-        await renderTaskRef.current.promise;
       } catch (e: unknown) {
-        if (e && typeof e === "object" && "name" in e && e.name === "RenderingCancelledException") return;
+        if (
+          e &&
+          typeof e === "object" &&
+          "name" in e &&
+          e.name === "RenderingCancelledException"
+        )
+          return;
         console.error("PDF render error:", e);
-        setError("PDFの表示に失敗しました");
+        if (!cancelled) {
+          container.innerHTML =
+            '<p class="text-red-500 p-4">PDFの表示に失敗しました</p>';
+        }
       }
     };
 
-    loadPdf();
+    loadAndRender();
 
     return () => {
       cancelled = true;
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
-      }
+      container.innerHTML = "";
     };
-  }, [file, currentPage, onTextExtracted]);
-
-  if (error) return <div className="text-red-500 p-4">{error}</div>;
+  }, [file]);
 
   return (
-    <div className="flex flex-col items-center w-full p-4">
-      <canvas ref={canvasRef} style={{ maxWidth: "100%", display: "block" }} />
-      {numPages > 1 && (
-        <div className="flex gap-2 mt-2 items-center">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrentPage(Math.max(1, currentPage - 1));
-            }}
-            disabled={currentPage <= 1}
-            className="px-3 py-1 bg-accent text-white rounded disabled:opacity-50 hover:bg-blue-600"
-          >
-            前へ
-          </button>
-          <span className="text-sm">
-            {currentPage} / {numPages}
-          </span>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrentPage(Math.min(numPages, currentPage + 1));
-            }}
-            disabled={currentPage >= numPages}
-            className="px-3 py-1 bg-accent text-white rounded disabled:opacity-50 hover:bg-blue-600"
-          >
-            次へ
-          </button>
-        </div>
-      )}
-    </div>
+    <div
+      ref={containerRef}
+      className="flex flex-col items-center w-full p-4"
+    />
   );
 }
