@@ -4,6 +4,7 @@ CREATE TABLE sessions (
   title TEXT NOT NULL,
   share_token TEXT UNIQUE NOT NULL DEFAULT gen_random_uuid()::TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL
 );
 

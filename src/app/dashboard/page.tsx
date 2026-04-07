@@ -30,6 +30,7 @@ export default async function DashboardPage({
   const { data } = await supabase
     .from("sessions")
     .select("*")
+    .order("updated_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
   const mySessions = (data ?? []) as Session[];

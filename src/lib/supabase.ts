@@ -27,6 +27,7 @@ export type Session = {
   title: string;
   share_token: string;
   created_at: string;
+  updated_at?: string | null;
   user_id?: string | null;
 };
 
