@@ -141,7 +141,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 </svg>
               </div>
               <h3 className="text-sm font-semibold text-gray-900 mb-1">コメント</h3>
-              <p className="text-xs text-gray-500 leading-relaxed">気になる箇所にコメントを残せます</p>
+              <p className="text-xs text-gray-500 leading-relaxed">箇所を指定してコメントできます</p>
             </div>
 
             {/* URL共有 */}
@@ -152,7 +152,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 </svg>
               </div>
               <h3 className="text-sm font-semibold text-gray-900 mb-1">URL共有</h3>
-              <p className="text-xs text-gray-500 leading-relaxed">リンクを知っている人だけが開けます</p>
+              <p className="text-xs text-gray-500 leading-relaxed">リンクを知る人だけが開けます</p>
             </div>
 
           </div>
