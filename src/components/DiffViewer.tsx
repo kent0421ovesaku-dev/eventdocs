@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import Resizer from "./Resizer";
 import FilePanel from "./FilePanel";
 import CommentSidebar from "./CommentSidebar";
@@ -164,6 +165,14 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
   return (
     <div className="flex flex-col h-screen bg-white">
       <header className="flex-shrink-0 h-12 px-4 flex items-center justify-between gap-2 border-b border-gray-200 bg-white">
+        {isOwner && (
+          <Link
+            href="/dashboard"
+            className="text-sm text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1 rounded transition shrink-0"
+          >
+            ← ダッシュボード
+          </Link>
+        )}
         {isOwner && editingTitle ? (
           <input
             ref={titleInputRef}
