@@ -10,12 +10,12 @@ type HeroSectionProps = {
 
 const DEMO_IMAGES = [
   {
-    src: "https://fblixafcxdnryhqfnnfa.supabase.co/storage/v1/object/public/files/demo_comment.png",
+    src: "/images/demo_comment.png",
     alt: "コメント機能のスクリーンショット",
     caption: "コメント機能",
   },
   {
-    src: "https://fblixafcxdnryhqfnnfa.supabase.co/storage/v1/object/public/files/demo_difference.png",
+    src: "/images/demo_difference.png",
     alt: "差分検出のスクリーンショット",
     caption: "差分検出",
   },

@@ -8,6 +8,24 @@ import FileUpload from "./FileUpload";
 import FileRenderer from "./FileRenderer";
 import PinComment from "./PinComment";
 
+async function fetchBlobViaSignedUrl(
+  storagePath: string,
+  shareToken: string
+): Promise<{ ok: true; blob: Blob; signedUrl: string } | { ok: false }> {
+  const params = new URLSearchParams({
+    storage_path: storagePath,
+    share_token: shareToken,
+  });
+  const metaRes = await fetch(`/api/storage/signed-url?${params.toString()}`);
+  if (!metaRes.ok) return { ok: false };
+  const body = (await metaRes.json()) as { signedUrl?: string };
+  if (!body.signedUrl) return { ok: false };
+  const fileRes = await fetch(body.signedUrl);
+  if (!fileRes.ok) return { ok: false };
+  const blob = await fileRes.blob();
+  return { ok: true, blob, signedUrl: body.signedUrl };
+}
+
 type FilePanelProps = {
   sessionId: string;
   shareToken: string;
@@ -90,6 +108,8 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [fileContent, setFileContent] = useState<File | null>(null);
+  /** PPT/PPTX の Google ビューア用（署名付き URL。blob の Object URL では外部ビューアが読めない） */
+  const [pptViewerSignedUrl, setPptViewerSignedUrl] = useState<string | undefined>(undefined);
   const [fileLoadError, setFileLoadError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -123,58 +143,56 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
     }
   }, [versions, selectedFileId]);
 
-  // Supabase download()でファイル取得（CORS回避）→ Fileオブジェクトで保持
+  // 署名付き URL（Route Handler 発行）→ fetch で blob 取得 → File として保持
   useEffect(() => {
-    if (!file || !supabase) {
+    if (!file) {
       setFileContent(null);
+      setPptViewerSignedUrl(undefined);
       setFileLoadError(false);
       return;
     }
     let cancelled = false;
     setFileLoadError(false);
-    supabase.storage
-      .from("files")
-      .download(file.storage_path)
-      .then(({ data: blob, error }) => {
-        if (cancelled) return;
-        if (error || !blob) {
-          console.error("download error:", error);
-          setFileContent(null);
-          setFileLoadError(true);
-          return;
-        }
-        const fileObj = new File([blob], file.original_name, { type: blob.type || "application/octet-stream" });
-        setFileContent(fileObj);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setFileContent(null);
-          setFileLoadError(true);
-        }
+    setPptViewerSignedUrl(undefined);
+    void fetchBlobViaSignedUrl(file.storage_path, shareToken).then((result) => {
+      if (cancelled) return;
+      if (!result.ok) {
+        console.error("signed-url / fetch blob failed");
+        setFileContent(null);
+        setFileLoadError(true);
+        return;
+      }
+      const fileObj = new File([result.blob], file.original_name, {
+        type: result.blob.type || "application/octet-stream",
       });
+      setFileContent(fileObj);
+      const isPpt = file.file_type === ".pptx" || file.file_type === ".ppt";
+      setPptViewerSignedUrl(isPpt ? result.signedUrl : undefined);
+    });
     return () => {
       cancelled = true;
     };
   // retryCount を依存に含めることで「再読み込み」ボタンが useEffect を再実行できる
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file, retryCount]);
+  }, [file, shareToken, retryCount]);
 
   const handleDownload = useCallback(async () => {
-    if (!file || !supabase) return;
+    if (!file) return;
     setDownloadLoading(true);
     try {
-      const { data: blob, error } = await supabase.storage.from("files").download(file.storage_path);
-      if (error) throw error;
-      if (!blob) throw new Error("ダウンロードに失敗しました");
+      const result = await fetchBlobViaSignedUrl(file.storage_path, shareToken);
+      if (!result.ok) throw new Error("ダウンロードに失敗しました");
       const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
+      a.href = URL.createObjectURL(result.blob);
       a.download = file.original_name;
       a.click();
       URL.revokeObjectURL(a.href);
+    } catch {
+      window.alert("ダウンロードに失敗しました。");
     } finally {
       setDownloadLoading(false);
     }
-  }, [file]);
+  }, [file, shareToken]);
 
   const [replaceLoading, setReplaceLoading] = useState(false);
   const handleReplaceFile = useCallback(async () => {
@@ -306,8 +324,8 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
                 fileType={file.file_type}
                 fileName={file.original_name}
                 fileUrl={
-                  (file.file_type === ".pptx" || file.file_type === ".ppt") && supabase
-                    ? supabase.storage.from("files").getPublicUrl(file.storage_path).data.publicUrl
+                  (file.file_type === ".pptx" || file.file_type === ".ppt")
+                    ? pptViewerSignedUrl
                     : undefined
                 }
                 currentPage={currentPage}

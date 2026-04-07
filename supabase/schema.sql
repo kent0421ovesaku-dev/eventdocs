@@ -97,4 +97,5 @@ CREATE POLICY "comments_delete_own" ON comments FOR DELETE TO authenticated
 
 -- StorageバケットはSupabaseダッシュボードで作成してください
 -- バケット名: files
--- アクセス: public
+-- アクセス: private（読み取りは /api/storage/signed-url 経由の署名付き URL）
+-- storage.objects ポリシー: supabase/migrations/storage_files_private_rls.sql
