@@ -16,6 +16,8 @@ type FileRendererProps = {
   currentPage?: number;
   onPageChange?: (page: number) => void;
   onTextExtracted?: (text: string) => void;
+  onRenderStart?: () => void;
+  onRenderComplete?: () => void;
 };
 
 export default function FileRenderer({
@@ -26,6 +28,8 @@ export default function FileRenderer({
   currentPage = 1,
   onPageChange,
   onTextExtracted,
+  onRenderStart,
+  onRenderComplete,
 }: FileRendererProps) {
   const ext = fileType.toLowerCase().replace(/^\./, "");
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
@@ -50,6 +54,8 @@ export default function FileRenderer({
         currentPage={currentPage}
         onPageChange={onPageChange}
         onTextExtracted={onTextExtracted}
+        onRenderStart={onRenderStart}
+        onRenderComplete={onRenderComplete}
       />
     );
   }

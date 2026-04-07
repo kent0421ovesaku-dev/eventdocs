@@ -88,6 +88,9 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const diffPanelRef = useRef<HTMLDivElement>(null);
   const isSyncing = useRef(false);
+  // 左右それぞれの描画完了フラグ（PDF非同期描画中はスクロール同期を停止）
+  const leftPdfReady = useRef(true);
+  const rightPdfReady = useRef(true);
 
   useEffect(() => {
     if (diffResult) {
@@ -122,7 +125,7 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
   }, [leftText, rightText]);
 
   const handleLeftScroll = useCallback(() => {
-    if (!syncScroll || isSyncing.current) return;
+    if (!syncScroll || isSyncing.current || !leftPdfReady.current || !rightPdfReady.current) return;
     isSyncing.current = true;
     const left = leftPanelRef.current;
     const right = rightPanelRef.current;
@@ -138,7 +141,7 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
   }, [syncScroll]);
 
   const handleRightScroll = useCallback(() => {
-    if (!syncScroll || isSyncing.current) return;
+    if (!syncScroll || isSyncing.current || !leftPdfReady.current || !rightPdfReady.current) return;
     isSyncing.current = true;
     const left = leftPanelRef.current;
     const right = rightPanelRef.current;
@@ -261,6 +264,8 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
             side="left"
             onScroll={handleLeftScroll}
             onTextExtracted={setLeftText}
+            onRenderStart={() => { leftPdfReady.current = false; }}
+            onRenderComplete={() => { leftPdfReady.current = true; }}
           />
         </div>
 
@@ -277,6 +282,8 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
             side="right"
             onScroll={handleRightScroll}
             onTextExtracted={setRightText}
+            onRenderStart={() => { rightPdfReady.current = false; }}
+            onRenderComplete={() => { rightPdfReady.current = true; }}
           />
         </div>
 

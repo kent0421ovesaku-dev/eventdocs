@@ -14,6 +14,8 @@ type FilePanelProps = {
   side: "left" | "right";
   onScroll?: () => void;
   onTextExtracted?: (text: string) => void;
+  onRenderStart?: () => void;
+  onRenderComplete?: () => void;
 };
 
 function useFileAndComments(sessionId: string, shareToken: string, side: "left" | "right") {
@@ -80,7 +82,7 @@ function useRealtimeComments(sessionId: string, side: "left" | "right", refresh:
 }
 
 const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
-  { sessionId, shareToken, side, onScroll, onTextExtracted },
+  { sessionId, shareToken, side, onScroll, onTextExtracted, onRenderStart, onRenderComplete },
   ref
 ) {
   const { versions, comments, refresh } = useFileAndComments(sessionId, shareToken, side);
@@ -291,6 +293,8 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
                 currentPage={currentPage}
                 onPageChange={setCurrentPage}
                 onTextExtracted={onTextExtracted}
+                onRenderStart={onRenderStart}
+                onRenderComplete={onRenderComplete}
               />
             </PinComment>
           ) : file ? (

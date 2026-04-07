@@ -9,15 +9,21 @@ interface PdfRendererProps {
   /** 後方互換のため維持（全ページ表示のため未使用） */
   onPageChange?: (page: number) => void;
   onTextExtracted?: (text: string) => void;
+  /** 描画開始時に呼ばれる（スクロール同期ゲート用） */
+  onRenderStart?: () => void;
+  /** 全ページ描画完了時に呼ばれる（スクロール同期ゲート用） */
+  onRenderComplete?: () => void;
 }
 
-export default function PdfRenderer({ file, onTextExtracted }: PdfRendererProps) {
+export default function PdfRenderer({ file, onTextExtracted, onRenderStart, onRenderComplete }: PdfRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  // onTextExtracted を ref で保持して useEffect の依存から外す
+  // コールバックを ref で保持して useEffect の依存から外す
   const onTextExtractedRef = useRef(onTextExtracted);
-  useEffect(() => {
-    onTextExtractedRef.current = onTextExtracted;
-  }, [onTextExtracted]);
+  const onRenderStartRef = useRef(onRenderStart);
+  const onRenderCompleteRef = useRef(onRenderComplete);
+  useEffect(() => { onTextExtractedRef.current = onTextExtracted; }, [onTextExtracted]);
+  useEffect(() => { onRenderStartRef.current = onRenderStart; }, [onRenderStart]);
+  useEffect(() => { onRenderCompleteRef.current = onRenderComplete; }, [onRenderComplete]);
 
   useEffect(() => {
     if (!file) return;
@@ -26,6 +32,7 @@ export default function PdfRenderer({ file, onTextExtracted }: PdfRendererProps)
 
     let cancelled = false;
     container.innerHTML = "";
+    onRenderStartRef.current?.();
 
     const loadAndRender = async () => {
       try {
@@ -95,6 +102,8 @@ export default function PdfRenderer({ file, onTextExtracted }: PdfRendererProps)
             throw e;
           }
         }
+
+        if (!cancelled) onRenderCompleteRef.current?.();
       } catch (e: unknown) {
         if (
           e &&
