@@ -9,12 +9,19 @@ type Props = {
   sessions: Session[];
 };
 
-function formatDate(iso: string): string {
+function formatDateTime(iso: string): string {
   const d = new Date(iso);
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
-  return `${y}/${m}/${day}`;
+  const h = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${y}/${m}/${day} ${h}:${min}`;
+}
+
+/** 分単位で一致していれば「同時刻」と判定して更新日時を非表示にする */
+function isSameMinute(a: string, b: string): boolean {
+  return formatDateTime(a) === formatDateTime(b);
 }
 
 export default function MySessionsSection({ sessions: initialSessions }: Props) {
@@ -123,7 +130,7 @@ export default function MySessionsSection({ sessions: initialSessions }: Props) 
                 </>
               ) : (
                 <>
-                  {/* セッション名 + 日付（横並び） */}
+                  {/* セッション名 + 日時（横並び） */}
                   <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
                     <Link
                       href={`/session/${s.share_token}`}
@@ -132,7 +139,10 @@ export default function MySessionsSection({ sessions: initialSessions }: Props) 
                       {s.title}
                     </Link>
                     <span className="text-sm text-gray-400 shrink-0 whitespace-nowrap">
-                      {formatDate(s.created_at)}
+                      作成 {formatDateTime(s.created_at)}
+                      {s.updated_at && !isSameMinute(s.created_at, s.updated_at) && (
+                        <>{"\u3000"}更新 {formatDateTime(s.updated_at)}</>
+                      )}
                     </span>
                   </div>
 
