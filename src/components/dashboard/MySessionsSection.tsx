@@ -102,7 +102,7 @@ export default function MySessionsSection({ sessions: initialSessions }: Props) 
       ) : (
         <ul className="space-y-2">
           {sessions.map((s) => (
-            <li key={s.id} className="flex items-center gap-2 group">
+            <li key={s.id} className="flex items-start gap-2 group py-1">
               {editingId === s.id ? (
                 <>
                   <input
@@ -130,27 +130,27 @@ export default function MySessionsSection({ sessions: initialSessions }: Props) 
                 </>
               ) : (
                 <>
-                  {/* セッション名 + 日時（横並び） */}
-                  <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
+                  {/* セッション名（1行目）+ 日時（2行目） */}
+                  <div className="flex-1 min-w-0">
                     <Link
                       href={`/session/${s.share_token}`}
-                      className="text-blue-600 hover:underline text-sm truncate shrink"
+                      className="text-blue-600 hover:underline text-sm truncate block"
                     >
                       {s.title}
                     </Link>
-                    <span className="text-sm text-gray-400 shrink-0 whitespace-nowrap">
+                    <p className="text-xs text-gray-400 truncate">
                       作成 {formatDateTime(s.created_at)}
                       {s.updated_at && !isSameMinute(s.created_at, s.updated_at) && (
                         <>{"\u3000"}更新 {formatDateTime(s.updated_at)}</>
                       )}
-                    </span>
+                    </p>
                   </div>
 
                   {/* 名前変更ボタン */}
                   <button
                     type="button"
                     onClick={() => startEdit(s)}
-                    className="text-xs text-gray-400 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:underline"
+                    className="text-xs text-gray-400 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:underline mt-0.5"
                   >
                     名前を変更
                   </button>
@@ -160,7 +160,7 @@ export default function MySessionsSection({ sessions: initialSessions }: Props) 
                     type="button"
                     onClick={() => deleteSession(s)}
                     disabled={deletingId === s.id}
-                    className="text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 disabled:opacity-30"
+                    className="text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 disabled:opacity-30 mt-0.5"
                     title="削除"
                   >
                     {deletingId === s.id ? "削除中…" : "削除"}
