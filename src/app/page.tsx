@@ -7,7 +7,7 @@ import { getSupabase } from "@/lib/supabase";
 import type { Session } from "@/lib/supabase";
 import SessionList from "@/components/SessionList";
 import { createClient } from "@/lib/supabase/server";
-import DemoImageSection from "@/components/DemoImageSection";
+import HeroSection from "@/components/HeroSection";
 
 /** 本番では未設定のまま。ローカルデモで従来の「全件一覧」が必要なときだけ true */
 const legacyPublicSessionList =
@@ -64,60 +64,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </nav>
       </header>
 
-      {/* メインコンテンツ */}
-      <main className="flex-1 flex flex-col items-center px-6 py-16">
+      {/* ヒーロー（2カラム）+ フォーム + デモ画像 */}
+      <HeroSection submitAction={submitAction} sessionError={sessionError} />
 
-        {/* ヒーロー */}
-        <section className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-3 tracking-tight">
-            資料を並べて、確認を前に進める
-          </h1>
-          <p className="text-gray-500 text-base max-w-md mx-auto leading-relaxed">
-            2つの資料を左右に並べて比較・コメント。<br />
-            共有URLで関係者と確認できます。
-          </p>
-        </section>
-
-        {/* フォームカード */}
-        <section className="w-full max-w-[480px] mb-16">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-            {sessionError && (
-              <p
-                className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-3 py-2 mb-4"
-                role="alert"
-              >
-                セッションを作成できませんでした。しばらくしてから再度お試しください。
-              </p>
-            )}
-            <form action={submitAction} className="space-y-3">
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                  セッションタイトル
-                </label>
-                <input
-                  id="title"
-                  name="title"
-                  type="text"
-                  placeholder="例: イベントA 資料比較"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 focus:border-gray-400 outline-none"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-gray-900 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-800 active:bg-gray-950 transition"
-              >
-                比較セッションを作成
-              </button>
-            </form>
-            <p className="mt-3 text-xs text-gray-400 text-center">
-              作成には{" "}
-              <Link href="/login" className="underline hover:text-gray-600">
-                ログイン
-              </Link>
-              {" "}が必要です
-            </p>
-          </div>
-        </section>
+      {/* 以降は中央配置コンテンツ */}
+      <main className="flex flex-col items-center px-6 pb-16">
 
         {/* 特徴セクション */}
         <section className="w-full max-w-2xl mb-16">
@@ -161,7 +112,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
         {/* Legacy セッション一覧（デモ用） */}
         {legacyPublicSessionList && (
-          <section className="w-full max-w-2xl">
+          <section className="w-full max-w-2xl mb-16">
             <div
               className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
               role="status"
@@ -174,9 +125,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             <SessionList sessions={sessions} />
           </section>
         )}
-
-        {/* デモ画像セクション */}
-        <DemoImageSection />
 
         {/* フッターノート */}
         <p className="text-xs text-gray-400 text-center max-w-xl">
