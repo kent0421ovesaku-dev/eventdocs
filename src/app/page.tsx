@@ -6,6 +6,7 @@ import { createSession } from "@/lib/actions";
 import { getSupabase } from "@/lib/supabase";
 import type { Session } from "@/lib/supabase";
 import SessionList from "@/components/SessionList";
+import { createClient } from "@/lib/supabase/server";
 
 /** 本番では未設定のまま。ローカルデモで従来の「全件一覧」が必要なときだけ true */
 const legacyPublicSessionList =
@@ -26,6 +27,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     redirect("/?session_error=1");
   }
 
+  const supabaseServer = createClient();
+  const { data: { user } } = await supabaseServer.auth.getUser();
+
   const supabase = getSupabase();
   let sessions: Session[] = [];
   if (legacyPublicSessionList && supabase) {
@@ -40,9 +44,15 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     <main className="min-h-screen flex flex-col items-center p-8 bg-gray-50">
       <div className="w-full max-w-2xl mx-auto">
         <div className="flex justify-end mb-2">
-          <Link href="/login" className="text-sm text-blue-600 hover:underline">
-            受託者ログイン
-          </Link>
+          {user ? (
+            <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
+              ダッシュボード
+            </Link>
+          ) : (
+            <Link href="/login" className="text-sm text-blue-600 hover:underline">
+              受託者ログイン
+            </Link>
+          )}
         </div>
         <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
           <h1 className="text-xl font-bold text-gray-900 mb-1">
@@ -107,17 +117,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 text-sm text-gray-600 space-y-3">
               <p>
                 トップでは全員分のセッションを一覧しません。作成すると共有用URLへ進みます。共有URLを知っている方だけがそのセッションを開けます。
-              </p>
-              <p>
-                受託者の方は{" "}
-                <Link href="/login" className="text-blue-600 hover:underline">
-                  ログイン
-                </Link>
-                後、
-                <Link href="/dashboard" className="text-blue-600 hover:underline">
-                  ダッシュボード
-                </Link>
-                で自分のセッションをまとめて扱えるようになります（データの紐づけは順次対応予定）。
               </p>
             </div>
           </section>
