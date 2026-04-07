@@ -80,6 +80,53 @@ export default function HeroSection({ submitAction, sessionError }: HeroSectionP
               {" "}が必要です
             </p>
           </div>
+
+          {/* 特徴カード3つ（縦並び） */}
+          <div className="flex flex-col gap-3">
+
+            <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-3">
+              <div className="shrink-0 mt-0.5">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15M3 9h18M3 15h18" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-0.5">左右で比較</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">2つの資料を並べて、差分をスクロールしながら確認できます</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-3">
+              <div className="shrink-0 mt-0.5">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-0.5">コメント</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">気になる箇所を指定して、確認コメントを残せます</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-3">
+              <div className="shrink-0 mt-0.5">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-0.5">URL共有</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">専用URLを発行。ログイン不要でクライアントと共有できます</p>
+              </div>
+            </div>
+
+          </div>
+
+          {/* フッターノート */}
+          <p className="text-xs text-gray-400 text-center">
+            セッション一覧は公開されません。共有URLを知っている方だけがアクセスできます。
+          </p>
+
         </div>
 
         {/* 右カラム：デモ画像2枚縦並び */}

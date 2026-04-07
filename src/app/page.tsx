@@ -67,52 +67,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       {/* ヒーロー（2カラム）+ フォーム + デモ画像 */}
       <HeroSection submitAction={submitAction} sessionError={sessionError} />
 
-      {/* 以降は中央配置コンテンツ */}
-      <main className="flex flex-col items-center px-6 pb-16">
-
-        {/* 特徴セクション */}
-        <section className="w-full max-w-2xl mb-16">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-            {/* 左右で比較 */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
-              <div className="flex justify-center mb-3">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15M3 9h18M3 15h18" />
-                </svg>
-              </div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">左右で比較</h3>
-              <p className="text-xs text-gray-500 leading-relaxed min-h-[2.8rem]">2つの資料を並べて、差分をスクロールしながら確認できます</p>
-            </div>
-
-            {/* コメント */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
-              <div className="flex justify-center mb-3">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
-                </svg>
-              </div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">コメント</h3>
-              <p className="text-xs text-gray-500 leading-relaxed min-h-[2.8rem]">気になる箇所を指定して、確認コメントを残せます</p>
-            </div>
-
-            {/* URL共有 */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
-              <div className="flex justify-center mb-3">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
-                </svg>
-              </div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">URL共有</h3>
-              <p className="text-xs text-gray-500 leading-relaxed min-h-[2.8rem]">専用URLを発行。ログイン不要でクライアントと共有できます</p>
-            </div>
-
-          </div>
-        </section>
-
-        {/* Legacy セッション一覧（デモ用） */}
-        {legacyPublicSessionList && (
-          <section className="w-full max-w-2xl mb-16">
+      {/* Legacy セッション一覧（デモ用） */}
+      {legacyPublicSessionList && (
+        <main className="flex flex-col items-center px-6 pb-16">
+          <section className="w-full max-w-2xl">
             <div
               className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
               role="status"
@@ -124,14 +82,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             <h2 className="font-bold text-lg mb-4 text-gray-900">過去のセッション</h2>
             <SessionList sessions={sessions} />
           </section>
-        )}
-
-        {/* フッターノート */}
-        <p className="text-xs text-gray-400 text-center max-w-xl">
-          セッション一覧は公開されません。共有URLを知っている方だけがアクセスできます。
-        </p>
-
-      </main>
+        </main>
+      )}
     </div>
   );
 }
