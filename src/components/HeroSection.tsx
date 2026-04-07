@@ -28,10 +28,10 @@ export default function HeroSection({ submitAction, sessionError }: HeroSectionP
   return (
     <>
       {/* 2カラムヒーロー */}
-      <section className="w-full max-w-[1200px] mx-auto mb-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-start px-6 pt-16">
+      <section className="w-full max-w-[1200px] mx-auto mb-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-start px-6 py-16">
 
         {/* 左カラム：キャッチコピー + フォーム */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 self-start">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-3 tracking-tight leading-snug">
               資料を並べて、<br />確認を前に進める
@@ -130,7 +130,7 @@ export default function HeroSection({ submitAction, sessionError }: HeroSectionP
         </div>
 
         {/* 右カラム：デモ画像2枚縦並び */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 self-start">
           {DEMO_IMAGES.map((img) => (
             <figure key={img.src} className="flex flex-col gap-1.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
