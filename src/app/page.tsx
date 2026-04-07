@@ -130,7 +130,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 </svg>
               </div>
               <h3 className="text-sm font-semibold text-gray-900 mb-1">左右で比較</h3>
-              <p className="text-xs text-gray-500 leading-relaxed">2つの資料を横に並べてスクロール同期しながら確認</p>
+              <p className="text-xs text-gray-500 leading-relaxed">2つの資料を並べて差分を確認</p>
             </div>
 
             {/* コメント */}
@@ -141,7 +141,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 </svg>
               </div>
               <h3 className="text-sm font-semibold text-gray-900 mb-1">コメント</h3>
-              <p className="text-xs text-gray-500 leading-relaxed">資料上の任意の箇所にピンを立てて指摘・確認コメントを残せる</p>
+              <p className="text-xs text-gray-500 leading-relaxed">気になる箇所にコメントを残せます</p>
             </div>
 
             {/* URL共有 */}
@@ -152,7 +152,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 </svg>
               </div>
               <h3 className="text-sm font-semibold text-gray-900 mb-1">URL共有</h3>
-              <p className="text-xs text-gray-500 leading-relaxed">専用URLを発行。ログイン不要でクライアントと共有できる</p>
+              <p className="text-xs text-gray-500 leading-relaxed">リンクを知っている人だけが開けます</p>
             </div>
 
           </div>
@@ -175,7 +175,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         )}
 
         {/* フッターノート */}
-        <p className="text-xs text-gray-400 text-center max-w-md">
+        <p className="text-xs text-gray-400 text-center max-w-xl">
           セッション一覧は公開されません。共有URLを知っている方だけがアクセスできます。
         </p>
 
