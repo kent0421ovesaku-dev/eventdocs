@@ -123,15 +123,15 @@ export default function MySessionsSection({ sessions: initialSessions }: Props) 
                 </>
               ) : (
                 <>
-                  {/* セッション名 + 日付 */}
-                  <div className="flex-1 min-w-0">
+                  {/* セッション名 + 日付（横並び） */}
+                  <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
                     <Link
                       href={`/session/${s.share_token}`}
-                      className="text-blue-600 hover:underline text-sm truncate block"
+                      className="text-blue-600 hover:underline text-sm truncate shrink"
                     >
                       {s.title}
                     </Link>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-sm text-gray-400 shrink-0 whitespace-nowrap">
                       {formatDate(s.created_at)}
                     </span>
                   </div>

@@ -100,6 +100,13 @@ export default function FileUpload({
           setError(insertErr.message);
           return;
         }
+
+        // ファイルアップロード完了時にセッションの updated_at を更新
+        await supabase
+          .from("sessions")
+          .update({ updated_at: new Date().toISOString() })
+          .eq("id", sessionId);
+
         onUploadComplete();
       } catch (e) {
         setError(e instanceof Error ? e.message : "アップロードに失敗しました");
