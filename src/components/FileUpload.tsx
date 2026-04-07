@@ -33,7 +33,7 @@ export default function FileUpload({
   const uploadFile = useCallback(
     async (file: File) => {
       if (!isAllowedFile(file.name)) {
-        setError("対応形式：.xlsx, .xls, .docx, .pdf, .pptx, .ppt, .png, .jpg, .jpeg");
+        setError("このファイル形式は対応していません。対応形式：PDF・Word・Excel・PPT・画像");
         return;
       }
       if (file.size > MAX_FILE_SIZE) {
@@ -68,7 +68,12 @@ export default function FileUpload({
           .upload(storagePath, file, { upsert: true });
 
         if (uploadErr) {
-          setError(uploadErr.message);
+          const msg = uploadErr.message ?? "";
+          if (msg.toLowerCase().includes("row-level security") || msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("403")) {
+            setError("権限エラーが発生しました。ログイン状態を確認してください。");
+          } else {
+            setError("ファイルのアップロードに失敗しました。時間をおいて再度お試しください。");
+          }
           return;
         }
 
@@ -97,7 +102,12 @@ export default function FileUpload({
         });
 
         if (insertErr) {
-          setError(insertErr.message);
+          const msg = insertErr.message ?? "";
+          if (msg.toLowerCase().includes("row-level security") || msg.toLowerCase().includes("unauthorized")) {
+            setError("権限エラーが発生しました。ログイン状態を確認してください。");
+          } else {
+            setError("ファイルのアップロードに失敗しました。時間をおいて再度お試しください。");
+          }
           return;
         }
 
@@ -108,8 +118,8 @@ export default function FileUpload({
           .eq("id", sessionId);
 
         onUploadComplete();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "アップロードに失敗しました");
+      } catch {
+        setError("アップロードに失敗しました。時間をおいて再度お試しください。");
       } finally {
         setUploading(false);
       }

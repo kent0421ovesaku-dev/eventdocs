@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // pdfjs-dist の TextItem に含まれる位置情報
 type PdfTextItem = {
@@ -107,6 +107,7 @@ interface PdfRendererProps {
 
 export default function PdfRenderer({ file, onTextExtracted, onRenderStart, onRenderComplete }: PdfRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
   // コールバックを ref で保持して useEffect の依存から外す
   const onTextExtractedRef = useRef(onTextExtracted);
   const onRenderStartRef = useRef(onRenderStart);
@@ -122,6 +123,7 @@ export default function PdfRenderer({ file, onTextExtracted, onRenderStart, onRe
 
     let cancelled = false;
     container.innerHTML = "";
+    setLoading(true);
     onRenderStartRef.current?.();
 
     const loadAndRender = async () => {
@@ -190,6 +192,7 @@ export default function PdfRenderer({ file, onTextExtracted, onRenderStart, onRe
         // 全ページ append 後、ブラウザのレイアウト（reflow）が 2 フレーム以内に確定する
         // double rAF で scrollHeight が最終値になってから同期を再開する
         if (!cancelled) {
+          setLoading(false);
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
               if (!cancelled) onRenderCompleteRef.current?.();
@@ -206,6 +209,7 @@ export default function PdfRenderer({ file, onTextExtracted, onRenderStart, onRe
           return;
         console.error("PDF render error:", e);
         if (!cancelled) {
+          setLoading(false);
           container.innerHTML =
             '<p class="text-red-500 p-4">PDFの表示に失敗しました</p>';
         }
@@ -221,9 +225,16 @@ export default function PdfRenderer({ file, onTextExtracted, onRenderStart, onRe
   }, [file]);
 
   return (
-    <div
-      ref={containerRef}
-      className="flex flex-col items-center w-full p-4"
-    />
+    <div className="relative w-full">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10 min-h-[120px]">
+          <p className="text-sm text-gray-500">PDFを読み込み中…</p>
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        className="flex flex-col items-center w-full p-4"
+      />
+    </div>
   );
 }

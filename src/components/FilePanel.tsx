@@ -90,6 +90,8 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [fileContent, setFileContent] = useState<File | null>(null);
+  const [fileLoadError, setFileLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [isOwner, setIsOwner] = useState<boolean>(false);
 
@@ -125,30 +127,37 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
   useEffect(() => {
     if (!file || !supabase) {
       setFileContent(null);
+      setFileLoadError(false);
       return;
     }
     let cancelled = false;
+    setFileLoadError(false);
     supabase.storage
       .from("files")
       .download(file.storage_path)
       .then(({ data: blob, error }) => {
         if (cancelled) return;
-        if (error) {
+        if (error || !blob) {
           console.error("download error:", error);
           setFileContent(null);
-          return;
-        }
-        if (!blob) {
-          setFileContent(null);
+          setFileLoadError(true);
           return;
         }
         const fileObj = new File([blob], file.original_name, { type: blob.type || "application/octet-stream" });
         setFileContent(fileObj);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFileContent(null);
+          setFileLoadError(true);
+        }
       });
     return () => {
       cancelled = true;
     };
-  }, [file]);
+  // retryCount を依存に含めることで「再読み込み」ボタンが useEffect を再実行できる
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, retryCount]);
 
   const handleDownload = useCallback(async () => {
     if (!file || !supabase) return;
@@ -272,7 +281,18 @@ const FilePanel = forwardRef<HTMLDivElement, FilePanelProps>(function FilePanel(
           className="flex-1 min-h-0 overflow-auto"
           onScroll={onScroll}
         >
-          {file && fileContent ? (
+          {fileLoadError ? (
+            <div className="p-4 flex flex-col items-start gap-2">
+              <p className="text-sm text-red-600">ファイルの読み込みに失敗しました。再度お試しください。</p>
+              <button
+                type="button"
+                onClick={() => { setFileLoadError(false); setRetryCount((c) => c + 1); }}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                再読み込み
+              </button>
+            </div>
+          ) : file && fileContent ? (
             <PinComment
               sessionId={sessionId}
               shareToken={shareToken}
