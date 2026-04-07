@@ -152,6 +152,18 @@ export default function FileUpload({
         <span className="text-xs text-gray-500">.xlsx, .xls, .docx, .pdf, .pptx, .ppt, .png, .jpg</span>
       </label>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      <p className="mt-1.5 text-xs text-gray-400 text-center leading-relaxed">
+        PDF推奨。Excel・PPT・Wordは{" "}
+        <a
+          href="https://www.ilovepdf.com/ja/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-gray-600"
+        >
+          こちら
+        </a>
+        {" "}でお手軽にPDF変換できます
+      </p>
     </div>
   );
 }
