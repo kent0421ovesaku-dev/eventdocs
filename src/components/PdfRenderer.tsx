@@ -103,7 +103,15 @@ export default function PdfRenderer({ file, onTextExtracted, onRenderStart, onRe
           }
         }
 
-        if (!cancelled) onRenderCompleteRef.current?.();
+        // 全ページ append 後、ブラウザのレイアウト（reflow）が 2 フレーム以内に確定する
+        // double rAF で scrollHeight が最終値になってから同期を再開する
+        if (!cancelled) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              if (!cancelled) onRenderCompleteRef.current?.();
+            });
+          });
+        }
       } catch (e: unknown) {
         if (
           e &&

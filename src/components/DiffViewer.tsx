@@ -87,7 +87,9 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const diffPanelRef = useRef<HTMLDivElement>(null);
-  const isSyncing = useRef(false);
+  // 'left' | 'right' | null: どちらのパネルが現在スクロールを主導しているか
+  // isSyncing(boolean) と異なり、主導側からのイベントは間引かずに全て適用する
+  const syncSource = useRef<"left" | "right" | null>(null);
   // 左右それぞれの描画完了フラグ（PDF非同期描画中はスクロール同期を停止）
   const leftPdfReady = useRef(true);
   const rightPdfReady = useRef(true);
@@ -125,8 +127,9 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
   }, [leftText, rightText]);
 
   const handleLeftScroll = useCallback(() => {
-    if (!syncScroll || isSyncing.current || !leftPdfReady.current || !rightPdfReady.current) return;
-    isSyncing.current = true;
+    // right が主導中（left への追従スクロール）は跳ね返しをブロック
+    if (!syncScroll || syncSource.current === "right" || !leftPdfReady.current || !rightPdfReady.current) return;
+    syncSource.current = "left";
     const left = leftPanelRef.current;
     const right = rightPanelRef.current;
     if (left && right) {
@@ -135,14 +138,17 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
       const rightMax = right.scrollHeight - right.clientHeight;
       right.scrollTop = ratio * rightMax;
     }
+    // 1フレーム後にリセット。left が連続スクロール中は次のイベントで source='left' を維持するため
+    // 右の追従イベントより先に rAF が来ても問題ない（右は source='left' でブロックされる）
     requestAnimationFrame(() => {
-      isSyncing.current = false;
+      if (syncSource.current === "left") syncSource.current = null;
     });
   }, [syncScroll]);
 
   const handleRightScroll = useCallback(() => {
-    if (!syncScroll || isSyncing.current || !leftPdfReady.current || !rightPdfReady.current) return;
-    isSyncing.current = true;
+    // left が主導中（right への追従スクロール）は跳ね返しをブロック
+    if (!syncScroll || syncSource.current === "left" || !leftPdfReady.current || !rightPdfReady.current) return;
+    syncSource.current = "right";
     const left = leftPanelRef.current;
     const right = rightPanelRef.current;
     if (left && right) {
@@ -152,7 +158,7 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
       left.scrollTop = ratio * leftMax;
     }
     requestAnimationFrame(() => {
-      isSyncing.current = false;
+      if (syncSource.current === "right") syncSource.current = null;
     });
   }, [syncScroll]);
 
