@@ -5,6 +5,7 @@ import Resizer from "./Resizer";
 import FilePanel from "./FilePanel";
 import CommentSidebar from "./CommentSidebar";
 import DiffHighlight from "./DiffHighlight";
+import { createClient } from "@/lib/supabase/client";
 import type { DiffResult } from "@/lib/diffUtils";
 
 type DiffViewerProps = {
@@ -24,6 +25,63 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
   const [rightText, setRightText] = useState<string>("");
   const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
+
+  // タイトルインライン編集
+  const [titleValue, setTitleValue] = useState(title);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleSaving, setTitleSaving] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setTitleValue(title); }, [title]);
+
+  // ログインユーザーが session のオーナーかを RLS で判定
+  // sessions の owner-only SELECT ポリシーにより、自分の session だけ返る
+  useEffect(() => {
+    async function checkOwnership() {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from("sessions")
+          .select("id")
+          .eq("id", sessionId)
+          .maybeSingle();
+        setIsOwner(!!data);
+      } catch {
+        // 未ログインまたは非オーナー
+      }
+    }
+    checkOwnership();
+  }, [sessionId]);
+
+  const handleTitleSave = useCallback(async () => {
+    const trimmed = titleValue.trim();
+    if (!trimmed) {
+      setTitleValue(title);
+      setEditingTitle(false);
+      return;
+    }
+    if (trimmed === title) {
+      setEditingTitle(false);
+      return;
+    }
+    setTitleSaving(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("sessions")
+        .update({ title: trimmed })
+        .eq("id", sessionId);
+      if (error) setTitleValue(title);
+    } catch {
+      setTitleValue(title);
+    } finally {
+      setTitleSaving(false);
+      setEditingTitle(false);
+    }
+  }, [titleValue, title, sessionId]);
 
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
@@ -106,7 +164,32 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
   return (
     <div className="flex flex-col h-screen bg-white">
       <header className="flex-shrink-0 h-12 px-4 flex items-center justify-between gap-2 border-b border-gray-200 bg-white">
-        <h1 className="font-semibold text-gray-900 truncate min-w-0">{title}</h1>
+        {isOwner && editingTitle ? (
+          <input
+            ref={titleInputRef}
+            type="text"
+            value={titleValue}
+            onChange={(e) => setTitleValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); handleTitleSave(); }
+              if (e.key === "Escape") { setTitleValue(title); setEditingTitle(false); }
+            }}
+            onBlur={handleTitleSave}
+            disabled={titleSaving}
+            className="font-semibold text-gray-900 min-w-0 w-48 sm:w-64 bg-white border-b-2 border-blue-500 focus:outline-none px-0 disabled:opacity-50"
+            autoFocus
+          />
+        ) : (
+          <h1
+            className={`font-semibold text-gray-900 truncate min-w-0 ${
+              isOwner ? "cursor-pointer hover:text-blue-600 transition-colors" : ""
+            }`}
+            onClick={isOwner ? () => { setTitleValue(titleValue); setEditingTitle(true); } : undefined}
+            title={isOwner ? "クリックして編集" : undefined}
+          >
+            {titleValue}
+          </h1>
+        )}
         <button
           type="button"
           onClick={handleDetectDiff}
