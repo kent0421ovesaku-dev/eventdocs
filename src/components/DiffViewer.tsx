@@ -132,9 +132,9 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
       const rightMax = right.scrollHeight - right.clientHeight;
       right.scrollTop = ratio * rightMax;
     }
-    window.setTimeout(() => {
+    requestAnimationFrame(() => {
       isSyncing.current = false;
-    }, 50);
+    });
   }, [syncScroll]);
 
   const handleRightScroll = useCallback(() => {
@@ -148,9 +148,9 @@ export default function DiffViewer({ sessionId, shareToken, title, displayName, 
       const leftMax = left.scrollHeight - left.clientHeight;
       left.scrollTop = ratio * leftMax;
     }
-    window.setTimeout(() => {
+    requestAnimationFrame(() => {
       isSyncing.current = false;
-    }, 50);
+    });
   }, [syncScroll]);
 
   const copyUrl = useCallback(() => {
