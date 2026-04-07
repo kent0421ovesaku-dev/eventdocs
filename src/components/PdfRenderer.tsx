@@ -70,6 +70,9 @@ function extractPageText(items: unknown[]): string {
 
 /** y座標の同一行判定しきい値（PDF単位） */
 const LINE_TOLERANCE = 3;
+
+const CMAP_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist/cmaps/";
+const CMAP_PACKED = true;
 /** スペース挿入するx座標ギャップのしきい値（PDF単位） */
 const SPACE_THRESHOLD = 3;
 
@@ -137,6 +140,8 @@ export default function PdfRenderer({ file, onTextExtracted, onRenderStart, onRe
           data: arrayBuffer,
           useWorkerFetch: false,
           isEvalSupported: false,
+          cMapUrl: CMAP_URL,
+          cMapPacked: CMAP_PACKED,
         }).promise;
 
         if (cancelled) return;
