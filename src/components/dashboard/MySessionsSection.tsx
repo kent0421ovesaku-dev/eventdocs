@@ -104,10 +104,9 @@ export default function MySessionsSection({ sessions: initialSessions }: Props) 
                   <button
                     type="button"
                     onClick={() => startEdit(s)}
-                    className="text-xs text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                    title="セッション名を編集"
+                    className="text-xs text-gray-400 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:underline"
                   >
-                    ✏️
+                    名前を変更
                   </button>
                 </>
               )}
